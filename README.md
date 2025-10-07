@@ -1,6 +1,10 @@
 # Jump Space Power Grid Planner
 
-Jump Space Power Grid Planner is a Flutter desktop and web application for planning ship layouts in the game Jump Space. It replicates the power grids produced by in-game reactors and auxiliary generators, and lets you position every ship component by matching the shapes documented in community resources. This is a hobby project maintained for fun; expect occasional rough edges.  
+Jump Space Power Grid Planner is a Flutter desktop and web application for planning ship layouts in the game Jump Space. It replicates the power grids produced by in-game reactors and auxiliary generators, and lets you position every ship component by matching the shapes documented in community resources. This is a hobby project maintained for fun; expect occasional rough edges.
+
+**Try it now:** [https://insomnolence.github.io/jump_space_planner/](https://insomnolence.github.io/jump_space_planner/)
+
+Ideally the devs for the Jump Space game allow you to go into your ship while in the hanger. This way you can fiddle with stuff before even launching missions. ( If you are reading this devs, make it happen ! )
 
 ## Features
 
