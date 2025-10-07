@@ -376,9 +376,14 @@ class _PlannerScreenState extends State<PlannerScreen> {
           children: [
             Scaffold(
         appBar: AppBar(
-          title: const Text('Jump Space Power Grid Planner'),
+          title: _isMobileMode
+              ? const Text(
+                  'Jump Space\nPower Grid Planner',
+                  style: TextStyle(fontSize: 18, height: 1.2),
+                )
+              : const Text('Jump Space Power Grid Planner'),
           actions: [
-            if (_selectedComponent != null)
+            if (_selectedComponent != null && !_isMobileMode)
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),
                 child: Row(
