@@ -26,6 +26,11 @@ class _PlannerScreenState extends State<PlannerScreen> {
   final FocusNode _focusNode = FocusNode();
   Offset? _cursorPosition;
 
+  // Mobile touch state
+  Offset? _mobileFloatingPosition;
+  bool _isMobileMode = false;
+  final GlobalKey _gridKey = GlobalKey();
+
   bool get _isEditing => _editingComponent != null;
 
   @override
@@ -270,6 +275,20 @@ class _PlannerScreenState extends State<PlannerScreen> {
     }
     setState(() {
       _selectedComponent = component;
+      // Initialize mobile floating position at center of screen if in mobile mode
+      if (_isMobileMode) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            final screenSize = MediaQuery.of(context).size;
+            setState(() {
+              _mobileFloatingPosition = Offset(
+                screenSize.width / 2,
+                screenSize.height / 2,
+              );
+            });
+          }
+        });
+      }
     });
     _focusNode.requestFocus();
   }
@@ -282,6 +301,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
         _selectedComponent = null;
         _hoveredPosition = null;
         _cursorPosition = null;
+        _mobileFloatingPosition = null;
       });
     }
   }
@@ -408,6 +428,16 @@ class _PlannerScreenState extends State<PlannerScreen> {
         body: LayoutBuilder(
           builder: (context, constraints) {
             final isMobile = constraints.maxWidth < 800;
+            // Update mobile mode state
+            if (_isMobileMode != isMobile) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _isMobileMode = isMobile;
+                  });
+                }
+              });
+            }
             if (isMobile) {
               return _buildMobileLayout();
             } else {
@@ -416,8 +446,10 @@ class _PlannerScreenState extends State<PlannerScreen> {
           },
         ),
       ),
-            if (_selectedComponent != null && _cursorPosition != null)
+            if (_selectedComponent != null && _cursorPosition != null && !_isMobileMode)
               _buildCursorFollower(),
+            if (_selectedComponent != null && _mobileFloatingPosition != null && _isMobileMode)
+              _buildMobileFloatingComponent(),
           ],
         ),
       ),
@@ -447,6 +479,87 @@ class _PlannerScreenState extends State<PlannerScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildMobileFloatingComponent() {
+    if (_selectedComponent == null || _mobileFloatingPosition == null) {
+      return const SizedBox.shrink();
+    }
+
+    final cellSize = 35.0; // Same as grid cell size
+    final bounds = _selectedComponent!.shape.bounds;
+    final width = bounds.$1 * cellSize;
+    final height = bounds.$2 * cellSize;
+
+    // Calculate the top-left position (where component would be placed)
+    final topLeftPosition = Offset(
+      _mobileFloatingPosition!.dx - (width / 2),
+      _mobileFloatingPosition!.dy - (height / 2),
+    );
+
+    // Calculate grid position from the top-left corner
+    final gridPosition = _screenPositionToGridPosition(topLeftPosition);
+    final canPlace = gridPosition != null &&
+                     _gridState.canPlaceComponent(_selectedComponent!, gridPosition);
+
+    return Positioned(
+      left: topLeftPosition.dx,
+      top: topLeftPosition.dy,
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            _mobileFloatingPosition = _mobileFloatingPosition! + details.delta;
+          });
+        },
+        onTap: () {
+          // Single tap to rotate
+          _rotateSelectedComponent();
+        },
+        onDoubleTap: () {
+          // Double tap to place
+          if (gridPosition != null && canPlace) {
+            _onCellTap(gridPosition);
+          } else {
+            _showError('Cannot place component here');
+          }
+        },
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: CustomPaint(
+            painter: _MobileFloatingPainter(_selectedComponent!, cellSize, canPlace),
+          ),
+        ),
+      ),
+    );
+  }
+
+  GridPosition? _screenPositionToGridPosition(Offset screenPosition) {
+    final gridKey = _gridKey;
+    if (gridKey.currentContext == null) {
+      return null;
+    }
+
+    final renderBox = gridKey.currentContext!.findRenderObject() as RenderBox?;
+    if (renderBox == null) {
+      return null;
+    }
+
+    // Convert screen position to local grid coordinates
+    final localPosition = renderBox.globalToLocal(screenPosition);
+    final cellSize = 35.0;
+
+    // Calculate which cell the CENTER of the floating component would be in
+    // This ensures the component snaps to where it visually appears to be
+    final cellX = (localPosition.dx / cellSize).floor();
+    final cellY = (localPosition.dy / cellSize).floor();
+
+    if (cellX >= 0 && cellX < GridState.gridWidth &&
+        cellY >= 0 && cellY < GridState.totalHeight) {
+      return GridPosition(x: cellX, y: cellY);
+    }
+
+    return null;
   }
 
 
@@ -677,6 +790,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
             PowerGridWidget(
               gridState: _gridState,
               cellSize: 35,
+              gridKey: _gridKey,
               onCellTap: _onCellTap,
               onHoverPositionChanged: (pos) {
                 setState(() {
@@ -1029,6 +1143,157 @@ class _PlannerScreenState extends State<PlannerScreen> {
       ),
     );
   }
+}
+
+class _MobileFloatingPainter extends CustomPainter {
+  final Component component;
+  final double cellSize;
+  final bool canPlace;
+
+  _MobileFloatingPainter(this.component, this.cellSize, this.canPlace);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Fill color based on validation
+    final fillPaint = Paint()
+      ..color = canPlace
+          ? Colors.blue.withValues(alpha: 0.6)
+          : Colors.red.withValues(alpha: 0.6)
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    for (final pos in component.shape.positions) {
+      final rect = Rect.fromLTWH(
+        pos.x * cellSize,
+        pos.y * cellSize,
+        cellSize,
+        cellSize,
+      );
+      canvas.drawRect(rect, fillPaint);
+      canvas.drawRect(rect, borderPaint);
+    }
+
+    // Draw outline like on the grid
+    final outlinePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0
+      ..color = Colors.white.withValues(alpha: 0.95)
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    final path = _buildOutlinePath();
+    if (path != null) {
+      canvas.drawPath(path, outlinePaint);
+    }
+  }
+
+  Path? _buildOutlinePath() {
+    final edges = <_GridSegment>{};
+
+    void toggleEdge(_GridPoint a, _GridPoint b) {
+      final segment = _GridSegment(a, b);
+      if (!edges.remove(segment)) {
+        edges.add(segment);
+      }
+    }
+
+    for (final relative in component.shape.positions) {
+      final cellX = relative.x;
+      final cellY = relative.y;
+
+      final topLeft = _GridPoint(cellX, cellY);
+      final topRight = _GridPoint(cellX + 1, cellY);
+      final bottomRight = _GridPoint(cellX + 1, cellY + 1);
+      final bottomLeft = _GridPoint(cellX, cellY + 1);
+
+      toggleEdge(topLeft, topRight);
+      toggleEdge(topRight, bottomRight);
+      toggleEdge(bottomRight, bottomLeft);
+      toggleEdge(bottomLeft, topLeft);
+    }
+
+    if (edges.isEmpty) {
+      return null;
+    }
+
+    final adjacency = <_GridPoint, Set<_GridPoint>>{};
+    for (final segment in edges) {
+      adjacency.putIfAbsent(segment.start, () => <_GridPoint>{}).add(segment.end);
+      adjacency.putIfAbsent(segment.end, () => <_GridPoint>{}).add(segment.start);
+    }
+
+    final path = Path();
+
+    void removeConnection(_GridPoint a, _GridPoint b) {
+      final neighborsA = adjacency[a];
+      if (neighborsA != null) {
+        neighborsA.remove(b);
+        if (neighborsA.isEmpty) {
+          adjacency.remove(a);
+        }
+      }
+      final neighborsB = adjacency[b];
+      if (neighborsB != null) {
+        neighborsB.remove(a);
+        if (neighborsB.isEmpty) {
+          adjacency.remove(b);
+        }
+      }
+    }
+
+    while (adjacency.isNotEmpty) {
+      final start = adjacency.keys.first;
+      final startNeighbors = adjacency[start];
+      if (startNeighbors == null || startNeighbors.isEmpty) {
+        adjacency.remove(start);
+        continue;
+      }
+
+      final initialNext = startNeighbors.first;
+      final componentPath = Path()
+        ..moveTo(start.x * cellSize, start.y * cellSize);
+
+      var current = start;
+      var next = initialNext;
+
+      while (true) {
+        componentPath.lineTo(next.x * cellSize, next.y * cellSize);
+        removeConnection(current, next);
+
+        if (next == start) {
+          break;
+        }
+
+        final neighbors = adjacency[next];
+        if (neighbors == null || neighbors.isEmpty) {
+          break;
+        }
+
+        _GridPoint candidate;
+        if (neighbors.length == 1) {
+          candidate = neighbors.first;
+        } else {
+          candidate = neighbors.firstWhere((point) => point != current, orElse: () => neighbors.first);
+        }
+
+        current = next;
+        next = candidate;
+      }
+
+      componentPath.close();
+      path.addPath(componentPath, Offset.zero);
+    }
+
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(_MobileFloatingPainter oldDelegate) =>
+      oldDelegate.component != component || oldDelegate.canPlace != canPlace;
 }
 
 class _ComponentShapePainter extends CustomPainter {

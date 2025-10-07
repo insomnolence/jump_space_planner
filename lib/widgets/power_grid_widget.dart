@@ -15,6 +15,7 @@ class PowerGridWidget extends StatefulWidget {
   final GridPosition? highlightedPosition;
   final Component? previewComponent;
   final bool compactLabels;
+  final GlobalKey? gridKey;
 
   const PowerGridWidget({
     super.key,
@@ -25,6 +26,7 @@ class PowerGridWidget extends StatefulWidget {
     this.highlightedPosition,
     this.previewComponent,
     this.compactLabels = false,
+    this.gridKey,
   });
 
   @override
@@ -50,8 +52,14 @@ class _PowerGridWidgetState extends State<PowerGridWidget> {
     GridSection.auxGeneratorB: 'Aux B',
   };
 
-  final GlobalKey _gridKey = GlobalKey();
+  late final GlobalKey _gridKey;
   GridPosition? _hoverPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _gridKey = widget.gridKey ?? GlobalKey();
+  }
 
   @override
   void didUpdateWidget(covariant PowerGridWidget oldWidget) {
