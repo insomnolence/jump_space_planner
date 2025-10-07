@@ -73,7 +73,6 @@ The repository includes the derived component and reactor definitions directly, 
 
 - Run `flutter analyze` before submitting changes.
 - Keep component and generator shapes synchronized with the latest in-game data.
-- Short labels used on the grid are generated in `Component.shortLabel`; update that logic if you introduce new naming conventions.
 
 ## License
 
