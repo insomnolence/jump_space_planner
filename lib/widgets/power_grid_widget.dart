@@ -14,6 +14,7 @@ class PowerGridWidget extends StatefulWidget {
   final void Function(GridPosition?)? onHoverPositionChanged;
   final GridPosition? highlightedPosition;
   final Component? previewComponent;
+  final bool compactLabels;
 
   const PowerGridWidget({
     super.key,
@@ -23,6 +24,7 @@ class PowerGridWidget extends StatefulWidget {
     this.onHoverPositionChanged,
     this.highlightedPosition,
     this.previewComponent,
+    this.compactLabels = false,
   });
 
   @override
@@ -40,6 +42,12 @@ class _PowerGridWidgetState extends State<PowerGridWidget> {
     GridSection.mainReactor: 'Main Reactor',
     GridSection.auxGeneratorA: 'Aux Generator A',
     GridSection.auxGeneratorB: 'Aux Generator B',
+  };
+
+  static const Map<GridSection, String> _compactSectionLabels = {
+    GridSection.mainReactor: 'Main',
+    GridSection.auxGeneratorA: 'Aux A',
+    GridSection.auxGeneratorB: 'Aux B',
   };
 
   final GlobalKey _gridKey = GlobalKey();
@@ -76,6 +84,8 @@ class _PowerGridWidgetState extends State<PowerGridWidget> {
   }
 
   Widget _buildSectionLabels() {
+    final labels = widget.compactLabels ? _compactSectionLabels : _sectionLabels;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -85,14 +95,26 @@ class _PowerGridWidgetState extends State<PowerGridWidget> {
           height: height,
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 8),
-          child: Text(
-            _sectionLabels[section]!,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.white70,
-            ),
-          ),
+          child: widget.compactLabels
+              ? RotatedBox(
+                  quarterTurns: 3,
+                  child: Text(
+                    labels[section]!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white70,
+                    ),
+                  ),
+                )
+              : Text(
+                  labels[section]!,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white70,
+                  ),
+                ),
         );
       }).toList(),
     );
