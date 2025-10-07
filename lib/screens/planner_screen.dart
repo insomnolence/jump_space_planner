@@ -554,10 +554,13 @@ class _PlannerScreenState extends State<PlannerScreen> {
     final localPosition = renderBox.globalToLocal(screenPosition);
     final cellSize = 35.0;
 
-    // Calculate which cell the CENTER of the floating component would be in
-    // This ensures the component snaps to where it visually appears to be
-    final cellX = (localPosition.dx / cellSize).floor();
-    final cellY = (localPosition.dy / cellSize).floor();
+    // Find where the CENTER of the top-left square is, and snap to that grid cell
+    // This accounts for "fat fingering" - if the bulk of the square is in a cell, snap there
+    final centerX = localPosition.dx + (cellSize / 2);
+    final centerY = localPosition.dy + (cellSize / 2);
+
+    final cellX = (centerX / cellSize).floor();
+    final cellY = (centerY / cellSize).floor();
 
     if (cellX >= 0 && cellX < GridState.gridWidth &&
         cellY >= 0 && cellY < GridState.totalHeight) {
