@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/reactor.dart';
 import '../models/generator.dart';
 import '../models/component.dart';
@@ -23,6 +24,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
   GridPosition? _hoveredPosition;
   PlacedComponent? _editingComponent;
   final FocusNode _focusNode = FocusNode();
+  Offset? _cursorPosition;
 
   bool get _isEditing => _editingComponent != null;
 
@@ -32,6 +34,119 @@ class _PlannerScreenState extends State<PlannerScreen> {
     // Initialize with Split Reactor MK1 and no generators
     _gridState = GridState(
       reactor: CompleteReactorData.getSplitReactorMK1(),
+    );
+    // Show help dialog on first launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showHelpDialogIfFirstTime();
+    });
+  }
+
+  Future<void> _showHelpDialogIfFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenHelp = prefs.getBool('has_seen_help') ?? false;
+
+    if (!hasSeenHelp && mounted) {
+      _showHelpDialogContent();
+      await prefs.setBool('has_seen_help', true);
+    }
+  }
+
+  void _showHelpDialogContent() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.help_outline, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('How to Use'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Welcome to Jump Space Power Grid Planner!',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              _buildHelpSection(
+                '1. Select a Component',
+                'Click any component from the left panel to select it.',
+                Icons.touch_app,
+              ),
+              _buildHelpSection(
+                '2. Place on Grid',
+                'Move your mouse over the grid and click to place the component.',
+                Icons.grid_on,
+              ),
+              _buildHelpSection(
+                '3. Rotate',
+                'Press R key or click the ROTATE button to rotate before placing.',
+                Icons.rotate_right,
+              ),
+              _buildHelpSection(
+                '4. Edit Placed Components',
+                'Click any placed component to pick it up and move it.',
+                Icons.open_with,
+              ),
+              _buildHelpSection(
+                '5. Delete',
+                'Press Delete/Backspace while editing to remove a component.',
+                Icons.delete_outline,
+              ),
+              const SizedBox(height: 8),
+              const Divider(),
+              const SizedBox(height: 8),
+              const Text(
+                'Quick Tips:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('• Press Esc to cancel selection or editing'),
+              const Text('• Components must be placed on powered cells'),
+              const Text('• Blue cells are protected, green are vulnerable'),
+              const Text('• Use the refresh button to clear all components'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('GOT IT'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHelpSection(String title, String description, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Colors.orange),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  description,
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -138,6 +253,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
         }
         _selectedComponent = null;
         _hoveredPosition = null;
+        _cursorPosition = null;
       } catch (e) {
         errorMessage = e.toString();
       }
@@ -165,6 +281,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
       setState(() {
         _selectedComponent = null;
         _hoveredPosition = null;
+        _cursorPosition = null;
       });
     }
   }
@@ -225,7 +342,17 @@ class _PlannerScreenState extends State<PlannerScreen> {
       focusNode: _focusNode,
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
-      child: Scaffold(
+      child: MouseRegion(
+        onHover: (event) {
+          if (_selectedComponent != null) {
+            setState(() {
+              _cursorPosition = event.position;
+            });
+          }
+        },
+        child: Stack(
+          children: [
+            Scaffold(
         appBar: AppBar(
           title: const Text('Jump Space Power Grid Planner'),
           actions: [
@@ -265,9 +392,14 @@ class _PlannerScreenState extends State<PlannerScreen> {
                 ),
               ),
             IconButton(
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.help_outline),
+              onPressed: _showHelpDialogContent,
+              tooltip: 'Show help',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_sweep),
               onPressed: _clearGrid,
-              tooltip: 'Clear all components',
+              tooltip: 'Clear all placed components',
             ),
           ],
         ),
@@ -280,6 +412,36 @@ class _PlannerScreenState extends State<PlannerScreen> {
             // Right panel - Legend
             Expanded(flex: 1, child: _buildInfoPanel()),
           ],
+        ),
+      ),
+            if (_selectedComponent != null && _cursorPosition != null)
+              _buildCursorFollower(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCursorFollower() {
+    if (_selectedComponent == null || _cursorPosition == null || _hoveredPosition != null) {
+      return const SizedBox.shrink();
+    }
+
+    final cellSize = 35.0; // Same as grid cell size
+    final bounds = _selectedComponent!.shape.bounds;
+    final width = bounds.$1 * cellSize;
+    final height = bounds.$2 * cellSize;
+
+    return Positioned(
+      left: _cursorPosition!.dx,
+      top: _cursorPosition!.dy,
+      child: IgnorePointer(
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: CustomPaint(
+            painter: _CursorFollowerPainter(_selectedComponent!, cellSize),
+          ),
         ),
       ),
     );
@@ -665,4 +827,193 @@ class _ComponentShapePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ComponentShapePainter oldDelegate) => false;
+}
+
+class _CursorFollowerPainter extends CustomPainter {
+  final Component component;
+  final double cellSize;
+
+  _CursorFollowerPainter(this.component, this.cellSize);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fillPaint = Paint()
+      ..color = const Color(0xFF7A36A7) // Same purple as placed components
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = Colors.grey.shade700
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+
+    for (final pos in component.shape.positions) {
+      final rect = Rect.fromLTWH(
+        pos.x * cellSize,
+        pos.y * cellSize,
+        cellSize,
+        cellSize,
+      );
+      canvas.drawRect(rect, fillPaint);
+      canvas.drawRect(rect, borderPaint);
+    }
+
+    // Draw outline like on the grid
+    final outlinePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0
+      ..color = Colors.white.withValues(alpha: 0.85)
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    final path = _buildOutlinePath();
+    if (path != null) {
+      canvas.drawPath(path, outlinePaint);
+    }
+  }
+
+  Path? _buildOutlinePath() {
+    final edges = <_GridSegment>{};
+
+    void toggleEdge(_GridPoint a, _GridPoint b) {
+      final segment = _GridSegment(a, b);
+      if (!edges.remove(segment)) {
+        edges.add(segment);
+      }
+    }
+
+    for (final relative in component.shape.positions) {
+      final cellX = relative.x;
+      final cellY = relative.y;
+
+      final topLeft = _GridPoint(cellX, cellY);
+      final topRight = _GridPoint(cellX + 1, cellY);
+      final bottomRight = _GridPoint(cellX + 1, cellY + 1);
+      final bottomLeft = _GridPoint(cellX, cellY + 1);
+
+      toggleEdge(topLeft, topRight);
+      toggleEdge(topRight, bottomRight);
+      toggleEdge(bottomRight, bottomLeft);
+      toggleEdge(bottomLeft, topLeft);
+    }
+
+    if (edges.isEmpty) {
+      return null;
+    }
+
+    final adjacency = <_GridPoint, Set<_GridPoint>>{};
+    for (final segment in edges) {
+      adjacency.putIfAbsent(segment.start, () => <_GridPoint>{}).add(segment.end);
+      adjacency.putIfAbsent(segment.end, () => <_GridPoint>{}).add(segment.start);
+    }
+
+    final path = Path();
+
+    void removeConnection(_GridPoint a, _GridPoint b) {
+      final neighborsA = adjacency[a];
+      if (neighborsA != null) {
+        neighborsA.remove(b);
+        if (neighborsA.isEmpty) {
+          adjacency.remove(a);
+        }
+      }
+      final neighborsB = adjacency[b];
+      if (neighborsB != null) {
+        neighborsB.remove(a);
+        if (neighborsB.isEmpty) {
+          adjacency.remove(b);
+        }
+      }
+    }
+
+    while (adjacency.isNotEmpty) {
+      final start = adjacency.keys.first;
+      final startNeighbors = adjacency[start];
+      if (startNeighbors == null || startNeighbors.isEmpty) {
+        adjacency.remove(start);
+        continue;
+      }
+
+      final initialNext = startNeighbors.first;
+      final componentPath = Path()
+        ..moveTo(start.x * cellSize, start.y * cellSize);
+
+      var current = start;
+      var next = initialNext;
+
+      while (true) {
+        componentPath.lineTo(next.x * cellSize, next.y * cellSize);
+        removeConnection(current, next);
+
+        if (next == start) {
+          break;
+        }
+
+        final neighbors = adjacency[next];
+        if (neighbors == null || neighbors.isEmpty) {
+          break;
+        }
+
+        _GridPoint candidate;
+        if (neighbors.length == 1) {
+          candidate = neighbors.first;
+        } else {
+          candidate = neighbors.firstWhere((point) => point != current, orElse: () => neighbors.first);
+        }
+
+        current = next;
+        next = candidate;
+      }
+
+      componentPath.close();
+      path.addPath(componentPath, Offset.zero);
+    }
+
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(_CursorFollowerPainter oldDelegate) =>
+      oldDelegate.component != component;
+}
+
+class _GridPoint {
+  final int x;
+  final int y;
+
+  const _GridPoint(this.x, this.y);
+
+  int compareTo(_GridPoint other) {
+    if (y != other.y) {
+      return y - other.y;
+    }
+    return x - other.x;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is _GridPoint && other.x == x && other.y == y;
+  }
+
+  @override
+  int get hashCode => Object.hash(x, y);
+}
+
+class _GridSegment {
+  final _GridPoint start;
+  final _GridPoint end;
+
+  _GridSegment(_GridPoint a, _GridPoint b)
+      : assert(a != b),
+        start = a.compareTo(b) <= 0 ? a : b,
+        end = a.compareTo(b) <= 0 ? b : a;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is _GridSegment && other.start == start && other.end == end;
+  }
+
+  @override
+  int get hashCode => Object.hash(start, end);
 }
