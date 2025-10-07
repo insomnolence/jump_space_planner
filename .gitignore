@@ -10,7 +10,6 @@ windows/
 macos/
 android/
 ios/
-web/
 
 # IntelliJ/Android Studio directories
 .idea/

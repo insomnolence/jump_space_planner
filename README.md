@@ -14,7 +14,7 @@ Jump Space Power Grid Planner is a Flutter desktop and web application for plann
 
 ### Prerequisites
 
-Install Flutter 3.22 or newer and enable the desktop target you care about (Linux, macOS, or Windows).
+Install Flutter 3.27 or newer and enable the desktop target you care about (Linux, macOS, or Windows).
 
 ```bash
 flutter config --enable-linux-desktop    # on Linux
