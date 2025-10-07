@@ -1,0 +1,73 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient - dark space theme -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a1929;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#020617;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow effect for powered cells -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bgGradient)" rx="80"/>
+
+  <!-- Border frame -->
+  <rect x="16" y="16" width="480" height="480" fill="none" stroke="#f97316" stroke-width="4" rx="64" opacity="0.6"/>
+
+  <!-- 4x4 Grid representation -->
+  <g transform="translate(128, 128)">
+    <!-- Grid lines -->
+    <g stroke="#334155" stroke-width="2" opacity="0.4">
+      <!-- Vertical lines -->
+      <line x1="64" y1="0" x2="64" y2="256"/>
+      <line x1="128" y1="0" x2="128" y2="256"/>
+      <line x1="192" y1="0" x2="192" y2="256"/>
+
+      <!-- Horizontal lines -->
+      <line x1="0" y1="64" x2="256" y2="64"/>
+      <line x1="0" y1="128" x2="256" y2="128"/>
+      <line x1="0" y1="192" x2="256" y2="192"/>
+    </g>
+
+    <!-- Grid outer border -->
+    <rect x="0" y="0" width="256" height="256" fill="none" stroke="#475569" stroke-width="3"/>
+
+    <!-- Powered cells (L-shaped component pattern) -->
+    <!-- Protected cells (blue) -->
+    <rect x="2" y="2" width="60" height="60" fill="#1e40af" filter="url(#glow)" opacity="0.9"/>
+    <rect x="2" y="66" width="60" height="60" fill="#1e40af" filter="url(#glow)" opacity="0.9"/>
+    <rect x="2" y="130" width="60" height="60" fill="#1e40af" filter="url(#glow)" opacity="0.9"/>
+
+    <!-- Vulnerable cells (green) -->
+    <rect x="66" y="130" width="60" height="60" fill="#15803d" filter="url(#glow)" opacity="0.9"/>
+    <rect x="130" y="130" width="60" height="60" fill="#15803d" filter="url(#glow)" opacity="0.9"/>
+
+    <!-- Component outline (white border around the L-shape) -->
+    <g stroke="#ffffff" stroke-width="4" fill="none" opacity="0.8">
+      <path d="M 0,0 L 64,0 L 64,192 L 192,192 L 192,128 L 0,128 Z"/>
+    </g>
+
+    <!-- Cell highlights -->
+    <g fill="#ffffff" opacity="0.15">
+      <rect x="4" y="4" width="28" height="28"/>
+      <rect x="4" y="68" width="28" height="28"/>
+      <rect x="4" y="132" width="28" height="28"/>
+      <rect x="68" y="132" width="28" height="28"/>
+      <rect x="132" y="132" width="28" height="28"/>
+    </g>
+  </g>
+
+  <!-- Accent corner details -->
+  <circle cx="80" cy="80" r="4" fill="#f97316" opacity="0.8"/>
+  <circle cx="432" cy="80" r="4" fill="#f97316" opacity="0.8"/>
+  <circle cx="80" cy="432" r="4" fill="#f97316" opacity="0.8"/>
+  <circle cx="432" cy="432" r="4" fill="#f97316" opacity="0.8"/>
+</svg>
