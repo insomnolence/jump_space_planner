@@ -308,7 +308,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
       _cancelEditing();
     }
     setState(() {
-      _gridState = _gridState.copyWith(reactor: reactor);
+      _gridState = _gridState.copyWith(reactor: reactor).clearComponents();
+      _selectedComponent = null;
+      _hoveredPosition = null;
     });
   }
 
@@ -403,15 +405,15 @@ class _PlannerScreenState extends State<PlannerScreen> {
             ),
           ],
         ),
-        body: Row(
-          children: [
-            // Left panel - Controls
-            Expanded(flex: 1, child: _buildControlPanel()),
-            // Center - Grid
-            Expanded(flex: 2, child: _buildGridPanel()),
-            // Right panel - Legend
-            Expanded(flex: 1, child: _buildInfoPanel()),
-          ],
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 800;
+            if (isMobile) {
+              return _buildMobileLayout();
+            } else {
+              return _buildDesktopLayout();
+            }
+          },
         ),
       ),
             if (_selectedComponent != null && _cursorPosition != null)
@@ -448,7 +450,219 @@ class _PlannerScreenState extends State<PlannerScreen> {
   }
 
 
-  Widget _buildGridPanel() {
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        // Left panel - Controls
+        Expanded(flex: 1, child: _buildControlPanel()),
+        // Center - Grid
+        Expanded(flex: 2, child: _buildGridPanel(compactLabels: false)),
+        // Right panel - Legend
+        Expanded(flex: 1, child: _buildInfoPanel()),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(8).copyWith(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Collapsible reactor & generators section
+          _buildCollapsibleReactorSection(),
+          const SizedBox(height: 8),
+          // Grid with button centered over it
+          Center(
+            child: Column(
+              children: [
+                // Offset button to right to account for labels
+                Padding(
+                  padding: const EdgeInsets.only(left: 40),
+                  child: _buildComponentSelectorButton(),
+                ),
+                const SizedBox(height: 16),
+                _buildGridPanel(compactLabels: true),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollapsibleReactorSection() {
+    return Card(
+      child: ExpansionTile(
+        title: const Text(
+          'Reactor & Generators',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        initiallyExpanded: false,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Main Reactor',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                DropdownButton<String>(
+                  isExpanded: true,
+                  value: _gridState.reactor.displayName,
+                  items: CompleteReactorData.getAllReactors().map((reactor) {
+                    return DropdownMenuItem(
+                      value: reactor.displayName,
+                      child: Text(reactor.displayName, style: const TextStyle(fontSize: 13)),
+                    );
+                  }).toList(),
+                  onChanged: (reactorName) {
+                    if (reactorName != null) {
+                      final reactor = CompleteReactorData.getAllReactors()
+                          .firstWhere((r) => r.displayName == reactorName);
+                      _changeReactor(reactor);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Aux Generator A',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                DropdownButton<String?>(
+                  isExpanded: true,
+                  value: _gridState.auxGeneratorA?.displayName,
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('None', style: TextStyle(fontSize: 13)),
+                    ),
+                    ...CompleteGeneratorData.getAllGenerators().map((gen) {
+                      return DropdownMenuItem(
+                        value: gen.displayName,
+                        child: Text(gen.displayName, style: const TextStyle(fontSize: 13)),
+                      );
+                    }),
+                  ],
+                  onChanged: (genName) {
+                    if (genName == null) {
+                      _changeAuxGeneratorA(null);
+                    } else {
+                      final generator = CompleteGeneratorData.getAllGenerators()
+                          .firstWhere((g) => g.displayName == genName);
+                      _changeAuxGeneratorA(generator);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Aux Generator B',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                DropdownButton<String?>(
+                  isExpanded: true,
+                  value: _gridState.auxGeneratorB?.displayName,
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('None', style: TextStyle(fontSize: 13)),
+                    ),
+                    ...CompleteGeneratorData.getAllGenerators().map((gen) {
+                      return DropdownMenuItem(
+                        value: gen.displayName,
+                        child: Text(gen.displayName, style: const TextStyle(fontSize: 13)),
+                      );
+                    }),
+                  ],
+                  onChanged: (genName) {
+                    if (genName == null) {
+                      _changeAuxGeneratorB(null);
+                    } else {
+                      final generator = CompleteGeneratorData.getAllGenerators()
+                          .firstWhere((g) => g.displayName == genName);
+                      _changeAuxGeneratorB(generator);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComponentSelectorButton() {
+    return ElevatedButton.icon(
+        onPressed: () {
+          showDialog(
+            context: context,
+            barrierColor: Colors.black26,
+            builder: (context) => Align(
+              alignment: Alignment.centerLeft,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: 320,
+                  height: MediaQuery.of(context).size.height * 0.8,
+                  margin: const EdgeInsets.only(left: 16, top: 80, bottom: 80),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Select Component',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 20),
+                              onPressed: () => Navigator.of(context).pop(),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      Expanded(
+                        child: _buildComponentList(scrollController: ScrollController()),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+        icon: const Icon(Icons.add_circle_outline, size: 20),
+        label: const Text('Add Component', style: TextStyle(fontSize: 15)),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          backgroundColor: Colors.blue.shade700,
+        ),
+    );
+  }
+
+  Widget _buildGridPanel({bool compactLabels = false}) {
     final instructionText = _isEditing
         ? 'Editing component: move to new cell • Press R to rotate • Click to place • Esc to cancel • Delete to remove'
         : (_selectedComponent != null
@@ -471,6 +685,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
               },
               highlightedPosition: _hoveredPosition,
               previewComponent: _selectedComponent,
+              compactLabels: compactLabels,
             ),
             const SizedBox(height: 20),
             _buildPlacementToolbar(),
@@ -669,7 +884,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
     );
   }
 
-  Widget _buildComponentList() {
+  Widget _buildComponentList({ScrollController? scrollController}) {
     // Filter out auxiliary generators - they are managed via the selector cards
     final availableComponents = CompleteComponentData
         .getAllComponents()
@@ -682,49 +897,69 @@ class _PlannerScreenState extends State<PlannerScreen> {
       componentsByType.putIfAbsent(component.type, () => []).add(component);
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Components',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    final listView = ListView(
+      controller: scrollController,
+      children: [
+        if (scrollController == null) ...[
+          const Text(
+            'Components',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${availableComponents.length} total',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 12),
+        ],
+        for (final entry in componentsByType.entries)
+          ExpansionTile(
+            title: Text(
+              _getComponentTypeLabel(entry.key),
+              style: const TextStyle(fontSize: 14),
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${availableComponents.length} total',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            subtitle: Text(
+              '${entry.value.length} items',
+              style: const TextStyle(fontSize: 11),
             ),
-            const SizedBox(height: 12),
-            for (final entry in componentsByType.entries)
-              ExpansionTile(
-                title: Text(_getComponentTypeLabel(entry.key)),
-                subtitle: Text('${entry.value.length} items', style: const TextStyle(fontSize: 11)),
-                initiallyExpanded: entry.key == ComponentType.engine,
-                children: [
-                  for (final component in entry.value)
-                    Card(
-                      color: _selectedComponent?.id == component.id
-                          ? Colors.blue.withValues(alpha: 0.3)
-                          : null,
-                      margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-                      child: ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.touch_app, size: 16),
-                        title: Text(component.displayName, style: const TextStyle(fontSize: 13)),
-                        trailing: _buildComponentShapePreview(component),
-                        onTap: () => _handleComponentTap(component),
-                        selected: _selectedComponent?.id == component.id,
-                      ),
-                    ),
-                ],
-              ),
-          ],
-        ),
-      ),
+            initiallyExpanded: entry.key == ComponentType.engine,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            childrenPadding: const EdgeInsets.symmetric(vertical: 4),
+            children: [
+              for (final component in entry.value)
+                ListTile(
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                  leading: const Icon(Icons.touch_app, size: 16),
+                  title: Text(component.displayName, style: const TextStyle(fontSize: 12)),
+                  trailing: _buildComponentShapePreview(component),
+                  selected: _selectedComponent?.id == component.id,
+                  selectedTileColor: Colors.blue.withValues(alpha: 0.2),
+                  onTap: () {
+                    _handleComponentTap(component);
+                    // Close bottom sheet if open
+                    if (scrollController != null) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                ),
+            ],
+          ),
+      ],
     );
+
+    // If no scroll controller provided, wrap in Card for desktop
+    if (scrollController == null) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: listView,
+        ),
+      );
+    }
+
+    return listView;
   }
 
 
