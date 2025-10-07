@@ -104,11 +104,10 @@ class CompleteComponentData {
   }
 
   // PILOT CANNONS
-  // Fragment Cannon changes shape between MK levels
-  static Component getFragmentCannonMK1() {
+  static Component getFragmentCannon() {
     return const Component(
-      id: 'fragment_cannon_mk1',
-      name: 'Fragment Cannon (MK1)',
+      id: 'fragment_cannon',
+      name: 'Fragment Cannon (MK1-3)',
       type: ComponentType.pilotCannon,
       shape: ComponentShape([
         GridPosition(x: 0, y: 0),
@@ -116,20 +115,6 @@ class CompleteComponentData {
         GridPosition(x: 2, y: 0),
       ]),
       markLevel: 1,
-    );
-  }
-
-  static Component getFragmentCannonMK2_3() {
-    return const Component(
-      id: 'fragment_cannon_mk2_3',
-      name: 'Fragment Cannon (MK2-3)',
-      type: ComponentType.pilotCannon,
-      shape: ComponentShape([
-        GridPosition(x: 0, y: 0),
-        GridPosition(x: 1, y: 0),
-        GridPosition(x: 2, y: 0),
-      ]),
-      markLevel: 2,
     );
   }
 
@@ -397,8 +382,7 @@ class CompleteComponentData {
       getMicroplasmaEngine(),
       getMassEjectorEngine(),
 
-      getFragmentCannonMK1(),
-      getFragmentCannonMK2_3(),
+      getFragmentCannon(),
       getRapidPulseCannon(),
       getDisruptorLaserMK1_2(),
       getDisruptorLaserMK3(),
