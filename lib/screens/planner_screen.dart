@@ -1021,6 +1021,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
     final listView = ListView(
       controller: scrollController,
+      shrinkWrap: true,
+      physics: scrollController == null ? const NeverScrollableScrollPhysics() : null,
       children: [
         if (scrollController == null) ...[
           const Text(

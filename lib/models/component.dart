@@ -124,7 +124,7 @@ class Component {
     return '$name (MK$markLevel)';
   }
 
-  /// Short code for compact identification on the grid (e.g., "DPE1")
+  /// Short code for compact identification on the grid (e.g., "DPE")
   String get shortLabel {
     // Remove MK suffixes and parentheses content for base acronym
     final baseName = name.split('(').first.trim();
@@ -151,10 +151,14 @@ class Component {
             : (id.isNotEmpty ? id[0].toUpperCase() : '?'))
         : buffer.toString();
 
-    // Append mark level number when available
-    final markMatch = RegExp(r'MK(\d)').firstMatch(displayName);
-    final markSuffix = markMatch != null ? markMatch.group(1)! : markLevel.toString();
-    code = '$code$markSuffix';
+    // Only append mark level for components that have different shapes per mark
+    // (Disruptor Laser and Mining Lasers are the only ones with shape changes)
+    final hasMarkVariants = name.contains('Disruptor Laser') ||
+                           name.contains('Mining Lasers');
+
+    if (hasMarkVariants && markLevel == 3) {
+      code = '$code$markLevel';
+    }
 
     if (code.length > 4) {
       code = code.substring(0, 4);
