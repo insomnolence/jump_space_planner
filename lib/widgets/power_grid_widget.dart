@@ -320,7 +320,10 @@ class _PowerGridWidgetState extends State<PowerGridWidget> {
   }
 
   Widget? _buildComponentLabel(PlacedComponent placed, GridPosition position) {
-    if (placed.position != position) {
+    // Find the best cell to display the label (top-left-most cell that exists)
+    final labelPosition = _findLabelPosition(placed);
+
+    if (labelPosition != position) {
       return null;
     }
 
@@ -349,6 +352,27 @@ class _PowerGridWidgetState extends State<PowerGridWidget> {
           ),
         ),
       ),
+    );
+  }
+
+  GridPosition _findLabelPosition(PlacedComponent placed) {
+    // Find the top-left-most actual cell in the shape
+    // Sort by y first (top), then by x (left)
+    final sortedPositions = placed.component.shape.positions.toList()
+      ..sort((a, b) {
+        if (a.y != b.y) return a.y.compareTo(b.y);
+        return a.x.compareTo(b.x);
+      });
+
+    // Use the first (top-left-most) cell as the label position
+    if (sortedPositions.isEmpty) {
+      return placed.position;
+    }
+
+    final labelOffset = sortedPositions.first;
+    return GridPosition(
+      x: placed.position.x + labelOffset.x,
+      y: placed.position.y + labelOffset.y,
     );
   }
 
