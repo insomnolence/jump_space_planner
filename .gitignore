@@ -1,0 +1,47 @@
+# Flutter/Dart/Pub related
+.dart_tool/
+.packages
+pubspec.lock
+
+# Build outputs
+build/
+linux/
+windows/
+macos/
+android/
+ios/
+web/
+
+# IntelliJ/Android Studio directories
+.idea/
+*.iml
+
+# VS Code directories
+.vscode/
+
+# Generated files
+**/Generated.xcconfig
+**/flutter_export_environment.sh
+
+# Logs
+*.log
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool
+.flutter-plugins
+.metadata
+
+# Temporary files
+*.tmp
+*.temp
+
+# Coverage
+coverage/
+
+# Packages downloaded by pub
+.pub-cache/
+
+# Misc
+*.DS_Store
+Thumbs.db
+
