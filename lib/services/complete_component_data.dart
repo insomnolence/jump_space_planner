@@ -3,6 +3,21 @@ import '../models/component.dart';
 /// Complete component data based on Jump Space Steam Guide
 /// Components with identical shapes across all MK levels are consolidated
 class CompleteComponentData {
+  // JUMP DRIVE
+  static Component getJumpDrive() {
+    return const Component(
+      id: 'jump_drive',
+      name: 'Jump Drive',
+      type: ComponentType.jumpDrive,
+      shape: ComponentShape([
+        GridPosition(x: 0, y: 0),
+        GridPosition(x: 1, y: 0),
+        GridPosition(x: 0, y: 1),
+      ]),
+      markLevel: 1,
+    );
+  }
+
   // SENSORS
   static Component getSectorScanner() {
     return const Component(
@@ -373,6 +388,8 @@ class CompleteComponentData {
   /// Get all components
   static List<Component> getAllComponents() {
     return [
+      getJumpDrive(),
+
       getSectorScanner(),
       getSupplyUplinkUnit(),
       getVectorTargetingModule(),

@@ -1102,6 +1102,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
   String _getComponentTypeLabel(ComponentType type) {
     switch (type) {
+      case ComponentType.jumpDrive:
+        return 'Jump Drive';
       case ComponentType.sensor:
         return 'Sensors';
       case ComponentType.engine:
