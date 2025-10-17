@@ -1,5 +1,6 @@
 /// Types of ship components
 enum ComponentType {
+  jumpDrive,
   sensor,
   engine,
   pilotCannon,
