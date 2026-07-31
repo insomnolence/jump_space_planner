@@ -1,10 +1,20 @@
 # Jump Space Power Grid Planner
 
-Jump Space Power Grid Planner is a Flutter desktop and web application for planning ship layouts in the game Jump Space. It replicates the power grids produced by in-game reactors and auxiliary generators, and lets you position every ship component by matching the shapes documented in community resources. This is a hobby project maintained for fun; expect occasional rough edges.
+> ### 🎉 Complete — and happily obsolete
+>
+> This planner existed to solve exactly one problem: you couldn't lay out your ship's power grid without launching a mission to do it. An earlier version of this README asked the Jump Space devs to let players configure their ship from the hangar. **They shipped it.** That capability is now in the game itself, where it works better than any external tool could.
+>
+> So this project is finished rather than abandoned. It still runs, and the hosted build stays online for anyone who finds it useful, but there's no longer much reason to reach for it and no further updates are planned.
+
+Jump Space Power Grid Planner is a Flutter desktop and web application for planning ship layouts in the game Jump Space. It replicates the power grids produced by in-game reactors and auxiliary generators, and lets you position every ship component by matching the shapes documented in community resources. This was a hobby project built for fun; expect occasional rough edges.
 
 **Try it now:** [https://insomnolence.github.io/jump_space_planner/](https://insomnolence.github.io/jump_space_planner/)
 
-Ideally the devs for the Jump Space game allow you to go into your ship while in the hanger. This way you can fiddle with stuff before even launching missions. ( If you are reading this devs, make it happen ! )
+The original ask, kept for posterity:
+
+> Ideally the devs for the Jump Space game allow you to go into your ship while in the hanger. This way you can fiddle with stuff before even launching missions. ( If you are reading this devs, make it happen ! )
+
+They made it happen. Thanks, devs.
 
 ## Features
 
@@ -74,6 +84,8 @@ To test the web bundle locally, serve the `build/web` directory with any static 
 The repository includes the derived component and reactor definitions directly, so no additional extraction step is required. Component footprints and power grids are derived from publicly shared gameplay information; special thanks to the authors of https://steamcommunity.com/sharedfiles/filedetails/?id=3572742683 for publishing the reference material.
 
 ## Contributing
+
+This project is finished and isn't taking changes. Fork it freely if you'd like to build on it — if you do, the original guidance was:
 
 - Run `flutter analyze` before submitting changes.
 - Keep component and generator shapes synchronized with the latest in-game data.
